@@ -282,24 +282,18 @@ void SoftMP3::onQueueFilled(OMX_U32 portIndex) {
             return;
         }
 
+        outHeader->nOffset = 0;
+        outHeader->nFilledLen = mConfig->outputFrameSize * sizeof(int16_t);
+        outHeader->nTimeStamp =
+            mAnchorTimeUs
+                + (mNumFramesOutput * 1000000ll) / mConfig->samplingRate;
         if (mIsFirst) {
             mIsFirst = false;
             // The decoder delay is 529 samples, so trim that many samples off
             // the start of the first output buffer. This essentially makes this
             // decoder have zero delay, which the rest of the pipeline assumes.
-            outHeader->nOffset =
-                kPVMP3DecoderDelay * mNumChannels * sizeof(int16_t);
-
-            outHeader->nFilledLen =
-                mConfig->outputFrameSize * sizeof(int16_t) - outHeader->nOffset;
-        } else if (!mSignalledOutputEos) {
-            outHeader->nOffset = 0;
-            outHeader->nFilledLen = mConfig->outputFrameSize * sizeof(int16_t);
+            memset(outHeader->pBuffer, 0, kPVMP3DecoderDelay * mNumChannels * sizeof(int16_t));
         }
-
-        outHeader->nTimeStamp =
-            mAnchorTimeUs
-                + (mNumFramesOutput * 1000000ll) / mConfig->samplingRate;
 
         if (inHeader) {
             CHECK_GE(inHeader->nFilledLen, mConfig->inputBufferUsedLength);
